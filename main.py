@@ -33,21 +33,24 @@ class Task:
         else:
             print("Что-то пошло не так, давайте еще разок")
 
-    def checkdeadline(over, now):
+    def checkdeadline():
         over = Task.taskdeadline()
         now = datetime.datetime.now()
-        if over - now == 0:
+        if over - now <= datetime.timedelta(seconds=0):
             return print("Увы,время вышло!")
         else:
-            return print("Потроопись,осталось ", (over - now))
+            return print("Осталось ", (over - now))
 
     def schedule_init():
         schedule.every(60).seconds.do(
             Task.checkdeadline, over=Task.taskdeadline(), now=datetime.datetime.now()
         )
-    
-    def status_check(): # V RAZRABOTKE BIM BIM BOM BOM
-        if Task.checkdeadline()
+
+    def status_check():
+        if Task.checkdeadline() == "Увы,время вышло!":
+            print("mission failed")
+        else:
+            print("Время есть, хилимся живём")
 
 
 class cleaning(Task):
@@ -86,3 +89,7 @@ while True:
     print("Отлично, пусть будет", task_name)
     dead_line = Task.taskdeadline()
     print("Задание ", task_name, "записано на", dead_line)
+    task_type = Task.tasktype()
+    if task_type == 1:
+        cleaning.kindofitem()
+        Task.status_check()
