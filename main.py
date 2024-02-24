@@ -1,6 +1,7 @@
 import schedule
 import datetime
 import random
+import time
 
 task_dict = {}
 
@@ -48,9 +49,9 @@ class Task:
             return print("Осталось ", (over - now))
 
     def schedule_init():
-        schedule.every(60).seconds.do(
-            Task.checkdeadline, over=Task.taskdeadline(), now=datetime.datetime.now()
-        )
+        fu = "Задача просрочена, фу"
+        keys = [key for key in task_dict if task_dict[key] == fu]
+        print(keys)
 
     def status_check():
         if Task.checkdeadline() == "Увы,время вышло!":
@@ -178,7 +179,7 @@ while True:
 
     CRUDoperation = int(
         input(
-            "Если хотите просмотреть имеющиеся задачи нажмите(1), чтобы удалить(2), или изменить(3),закрыть ебейшее приложение(0)"
+            "Если хотите просмотреть имеющиеся задачи нажмите(1), чтобы удалить(2), или изменить(3),запустить авто-проверку заданий (0)"
         )
     )
     if CRUDoperation == 1:
@@ -214,4 +215,7 @@ while True:
             task_type = Task.tasktype()
             student.task_info()
     if CRUDoperation == 0:
-        break
+        schedule.every(5).seconds.do(Task.schedule_init)
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
