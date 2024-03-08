@@ -18,12 +18,12 @@ def homework():
     return homework
 
 
-def taskname():
+def set_name_task():
     name = input("Давайте сразу дадим название нашему заданию: ")
     return name
 
 
-def tasktype():
+def task_type_by_class():
     print(
         "Выбери категорию заданий :(Бытовые дела = 1),(Тренировка = 2),(Домашняя работа = 3)"
     )
@@ -32,3 +32,4 @@ def tasktype():
         return type
     else:
         print("Что-то пошло не так, давайте еще разок")
+
