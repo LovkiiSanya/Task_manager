@@ -6,38 +6,82 @@ import time
 from timeline import *
 from support import *
 import enum
+import psycopg2
+from peewee import *
+
+
+
+try:
+    connection = PostgresqlDatabase("postgres",
+        host="127.0.0.1", user="admin", password="root"
+    )
+    connection.autocommit = True
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT version();")
+        print(cursor.fetchone())
+
+except Exception as _ex:
+    print("[INFO] Ошибка при работе с Базой данных", _ex)
+finally:
+    if connection:
+        connection.close()
+        print("[INFO] Соединение с Базой данных закрыто.")
+
+class BaseModel(Model):
+    class Meta:
+        database = connection
+
+class TaskManagerTable(BaseModel):
+    id_task = IntegerField(column_name="id")
+    task_table_type = TextField(column_name="task_type")
+    task_table_name = TextField(column_name="task_name")
+    task_table_deadline = DateField(column_name="task_deadline")
+    task_table_status = TextField(column_name="task_status")
+    task_table_item = TextField(column_name="task_item")
+    class Meta:
+        table_name = "task_manager"
+
+
+        
+def main():
+    pass
+
 
 task_dict = {}
 
 
 class TaskStatus(enum.Enum):
-    Активна = 1
-    Неактивна = 2
+    ACTIVE = 1
+    INACTIVE = 2
 
 
 class MainTask:
-    def __init__(self):
+    __id: int
+    __name: str
+    __deadline: datetime
+    __status: int
+
+    def __init__(self) -> None:
         self.__id = random.randint(1, 1000000)
         self.__name = None
         self.__deadline = None
         self.__status = None
 
-    def set_status(self, num):
+    def set_status(self, num: TaskStatus):
         status = TaskStatus
         if num == 1:
-            status = "Ваша задача: {}".format(status(1).name)
+            status = "Ваша задача: {}".format(TaskStatus.ACTIVE)
         elif num == 2:
-            status = "Ваша задача: {}".format(status(2).name)
+            status = "Ваша задача: {}".format(TaskStatus.INACTIVE)
         self.__status = status
 
-    def get_status(self):
+    def get_status(self) -> TaskStatus:
         return self.__status
 
     def get_id(self):
         return self.__id
 
-    def set_deadline(self):
-        deadline = user_set_deadline()
+    def set_deadline(self, deadline):
         self.__deadline = deadline
 
     def get_deadline(self):
@@ -52,94 +96,144 @@ class MainTask:
 
 
 class CleaningTask(MainTask):
+    __item: str
+
     def __init__(self):
         super().__init__()
-        item = clean_item()
-        self.item = item
+        self.__item = None
 
-    def set_task_parameters():
+    def set_item(self):
+        self.__item = clean_item()
+
+    def get_item(self):
+        return self.__item
+
+    def set_task_parameters() -> None:
         launch = CleaningTask()
         launch.set_taskname()
-        launch.set_deadline()
+        launch.set_item()
+        try:
+            deadline = user_set_deadline()
+            launch.set_deadline(deadline)
+        except ValueError:
+            print(
+                "Вводить надо только дату,автоматически установлена текущая время и дата"
+            )
+            deadline = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+            launch.set_deadline(deadline)
         launch.set_status(1)
         task_dict[launch.get_id()] = launch
+
         print("Запомните ID вашей задачи!", launch.get_id())
+
+        TaskManagerTable.create(id_task = launch.get_id(),task_table_type = "Уборка",task_table_name = launch.get_taskname(),task_table_deadline = launch.get_deadline(),
+                                task_table_status = launch.get_status(),task_table_item = launch.get_item())
 
     def __repr__(self):
         Cleaning = type(self).__name__
-        return f"{Cleaning}({self.get_id()!r},{self.get_deadline()!r},{self.get_status()!r},{self.get_taskname()!r},{self.item})"
+        return f"{Cleaning}({self.get_id()!r},{self.get_deadline()!r},{self.get_status()!r},{self.get_taskname()!r},{self.__item})"
 
     def __str__(self):
-        return f"Ваш ID: {self.get_id()} Дедлайн: {self.get_deadline()} {self.get_status()} Название: {self.get_taskname()} Комната/предмет: {self.item}"
+        return f"Ваш ID: {self.get_id()} Дедлайн: {self.get_deadline()} {self.get_status()} Название: {self.get_taskname()} Комната/предмет: {self.__item}"
 
 
 class TrainingTask(MainTask):
+    __muscle: str
+
     def __init__(self):
         super().__init__()
-        muscle = training_muscle()
-        self.muscle = muscle
+        self.__muscle = None
+
+    def set_muscle(self):
+        self.__muscle = training_muscle()
+
+    def get_muscle(self):
+        return self.__muscle
 
     def set_task_parameters():
         launch = TrainingTask()
         launch.set_taskname()
-        launch.set_deadline()
+        launch.set_muscle()
+        try:
+            deadline = user_set_deadline()
+            launch.set_deadline(deadline)
+        except ValueError:
+            print(
+                "Вводить надо только дату,автоматически установлена текущая время и дата"
+            )
+            deadline = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+            launch.set_deadline(deadline)
         launch.set_status(1)
         task_dict[launch.get_id()] = launch
         print("Запомните ID вашей задачи!", launch.get_id())
-
+        TaskManagerTable.create(id_task = launch.get_id(),task_table_type = "Тренировка",task_table_name = launch.get_taskname(),task_table_deadline = launch.get_deadline(),
+                                task_table_status = launch.get_status(),task_table_item = launch.get_muscle())
     def __repr__(self):
         Training = type(self).__name__
-        return f"{Training}({self.get_id()!r},{self.get_deadline()!r},{self.get_status()!r},{self.get_taskname()!r},{self.muscle})"
+        return f"{Training}({self.get_id()!r},{self.get_deadline()!r},{self.get_status()!r},{self.get_taskname()!r},{self.__muscle})"
 
     def __str__(self):
-        return f"Ваш ID: {self.get_id()} Дедлайн: {self.get_deadline()} {self.get_status()} Название: {self.get_taskname()} Группа мышц: {self.muscle}"
+        return f"Ваш ID: {self.get_id()} Дедлайн: {self.get_deadline()} {self.get_status()} Название: {self.get_taskname()} Группа мышц: {self.__muscle}"
 
 
 class HomeworkTask(MainTask):
+    __study: str
+
     def __init__(self):
         super().__init__()
-        study = homework()
-        self.study = study
+        self.__study = None
+
+    def set_study(self):
+        self.__study = homework()
+
+    def get_study(self):
+        return self.__study
 
     def set_task_parameters():
         launch = HomeworkTask()
         launch.set_taskname()
-        launch.set_deadline()
+        launch.set_study()
+        try:
+            deadline = user_set_deadline()
+            launch.set_deadline(deadline)
+        except ValueError:
+            print(
+                "Вводить надо только дату,автоматически установлена текущая время и дата"
+            )
+            deadline = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+            launch.set_deadline(deadline)
         launch.set_status(1)
         task_dict[launch.get_id()] = launch
         print("Запомните ID вашей задачи!", launch.get_id())
-
+        TaskManagerTable.create(id_task = launch.get_id(),task_table_type = "Учёба",task_table_name = launch.get_taskname(),task_table_deadline = launch.get_deadline(),
+                                task_table_status = launch.get_status(),task_table_item = launch.get_study())
     def __repr__(self):
         Student = type(self).__name__
-        return f"{Student}({self.get_id()!r},{self.get_deadline()!r},{self.get_status()!r},{self.get_taskname()!r},{self.study})"
+        return f"{Student}({self.get_id()!r},{self.get_deadline()!r},{self.get_status()!r},{self.get_taskname()!r},{self.__study})"
 
     def __str__(self):
-        return f"Ваш ID: {self.get_id()} Дедлайн: {self.get_deadline()} {self.get_status()} Название: {self.get_taskname()} Группа мышц: {self.study}"
+        return f"Ваш ID: {self.get_id()} Дедлайн: {self.get_deadline()} {self.get_status()} Название: {self.get_taskname()} Группа мышц: {self.__study}"
+
+
+def one_more_task():
+    one_more_task = input("Хотите создать еще одну задачу?(д = да/н = нет)")
+    if one_more_task == "д":
+        create_task()
+    else:
+        CRUDoperations()
 
 
 def create_task():
     launch = task_type_by_class()
     if launch == 1:
         CleaningTask.set_task_parameters()
-        one_more_task = input("Хотите создать еще одну задачу?(д = да/н = нет)")
-        if one_more_task == "д":
-            create_task()
-        else:
-            CRUDoperations()
+        one_more_task()
     elif launch == 2:
         TrainingTask.set_task_parameters()
-        one_more_task = input("Хотите создать еще одну задачу?(д = да/н = нет)")
-        if one_more_task == "д":
-            create_task()
-        else:
-            CRUDoperations()
+        one_more_task()
     elif launch == 3:
         HomeworkTask.set_task_parameters()
-        one_more_task = input("Хотите создать еще одну задачу?(д = да/н = нет)")
-        if one_more_task == "д":
-            create_task()
-        else:
-            CRUDoperations()
+        one_more_task()
 
 
 def CRUDoperations():
@@ -168,12 +262,9 @@ def CRUDoperations():
 
     if CRUDoperation == 4:
         change_task_by_id = int(input("По какому ID меняем задание?: "))
-        if type(task_dict[change_task_by_id]) == CleaningTask:
-            CleaningTask.set_task_parameters()
-        if type(task_dict[change_task_by_id]) == TrainingTask:
-            TrainingTask.set_task_parameters()
-        if type(task_dict[change_task_by_id]) == HomeworkTask:
-            HomeworkTask.set_task_parameters()
+        change = type(task_dict[change_task_by_id])
+        change.set_task_parameters()
+
     if CRUDoperation == 0:
         schedule.every(3).seconds.do(schedule_check)
         while True:
@@ -186,9 +277,36 @@ def schedule_check():
         if key.get_deadline() < datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"):
             key.set_status(2)
             print(key)
+            test = TaskManagerTable.select()
+            test_selected = test.dicts().execute()
+            for test in test_selected:
+                print("тест: ", test)
         else:
+            key.set_status(1)
             print(key)
-
+            test = TaskManagerTable.select()
+            print(test)
 
 while True:
+    if __name__ == "__main__":
+        main()
     CRUDoperations()
+    
+    try:
+        connection = psycopg2.connect(
+        host="127.0.0.1", user="admin", password="root", dbname="postgres"
+    )
+        connection.autocommit = True
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT version();")
+            print(cursor.fetchone())
+
+        with connection.cursor() as cursor:
+            cursor.execute("""INSERT INTO task_manager (task_type) VALUES ('launch') """)
+
+    except Exception as _ex:
+        print("[INFO] Ошибка при работе с Базой данных", _ex)
+    finally:
+        if connection:
+            connection.close()
+            print("[INFO] Соединение с Базой данных закрыто.")
